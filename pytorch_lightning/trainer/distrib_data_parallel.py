@@ -382,6 +382,8 @@ class TrainerDDPMixin(ABC):
         if self.proc_rank == 0:
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
+        if torch.distributed.is_initialized():
+            torch.distributed.barrier()
 
     def load_spawn_weights(self, original_model):
         """
@@ -403,6 +405,9 @@ class TrainerDDPMixin(ABC):
 
             # remove ddp weights
             os.remove(path)
+
+        if torch.distributed.is_initialized():
+            torch.distributed.barrier()
 
         return loaded_model
 

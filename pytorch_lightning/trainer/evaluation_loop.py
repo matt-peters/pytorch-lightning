@@ -251,10 +251,12 @@ class TrainerEvaluationLoopMixin(ABC):
             # on TPU we have to wrap it under the ParallelLoader
             if self.use_tpu:
                 device = xm.xla_device()
-                dataloader = xla_pl.ParallelLoader(dataloader, [device])
-                dataloader = dataloader.per_device_loader(device)
+                parallel_dataloader = xla_pl.ParallelLoader(dataloader, [device])
+                _dataloader = parallel_dataloader.per_device_loader(device)
+            else:
+                _dataloader = dataloader
 
-            for batch_idx, batch in enumerate(dataloader):
+            for batch_idx, batch in enumerate(_dataloader):
                 if batch is None:
                     continue
 
@@ -295,6 +297,10 @@ class TrainerEvaluationLoopMixin(ABC):
                 dl_outputs.append(output)
 
             outputs.append(dl_outputs)
+
+            if self.use_tpu:
+                parallel_dataloader.close()
+                del parallel_dataloader
 
         eval_results = {}
 

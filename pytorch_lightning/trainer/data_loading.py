@@ -21,6 +21,7 @@ try:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
+    import torch_xla.distributed.parallel_loader as xla_pl
 except ImportError:
     XLA_AVAILABLE = False
 else:
@@ -139,6 +140,11 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
+        # the ParallelDataLoader needs to be closed
+        _loader = getattr(self, 'train_dataloader')
+        if hasattr(_loader, 'close'):
+            _loader.close()
+
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
 
         self.num_training_batches = 0
@@ -181,6 +187,10 @@ class TrainerDataLoadingMixin(ABC):
 
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
+
+        if self.use_tpu:
+            device = xm.xla_device()
+            self.train_dataloader = xla_pl.ParallelLoader(dataloader, [device])
 
     def _reset_eval_dataloader(self, model: LightningModule,
                                mode: str) -> Tuple[int, List[DataLoader]]:

@@ -395,14 +395,13 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_epoch_start'):
                 model.on_epoch_start()
 
-        # track local dataloader so TPU can wrap each epoch
-        train_dataloader = self.train_dataloader
-
         # on TPU we have to wrap it under the ParallelLoader
         if self.use_tpu:
+            # train_dataloader is an instance of xla_pl.ParallelLoader
             device = xm.xla_device()
-            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
-            train_dataloader = train_dataloader.per_device_loader(device)
+            train_dataloader = self.train_dataloader.per_device_loader(device)
+        else:
+            train_dataloader = self.train_dataloader
 
         # bookkeeping
         outputs = []

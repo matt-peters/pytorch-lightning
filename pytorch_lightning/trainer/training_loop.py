@@ -397,18 +397,18 @@ class TrainerTrainLoopMixin(ABC):
 
         # on TPU we have to wrap it under the ParallelLoader
         if self.use_tpu:
-            # train_dataloader is an instance of xla_pl.ParallelLoader
             device = xm.xla_device()
-            train_dataloader = self.train_dataloader.per_device_loader(device)
+            parallel_loader = xla_pl.ParallelLoader(self.train_dataloader, [device])
+            _dataloader = parallel_loader.per_device_loader(device)
         else:
-            train_dataloader = self.train_dataloader
+            _dataloader = self.train_dataloader
 
         # bookkeeping
         outputs = []
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
-            enumerate(_with_is_last(train_dataloader)), "get_train_batch"
+            enumerate(_with_is_last(_dataloader)), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
@@ -486,6 +486,11 @@ class TrainerTrainLoopMixin(ABC):
 
         if self.use_horovod:
             hvd.join(hvd.local_rank() if self.on_gpu else -1)
+
+        if self.use_tpu:
+            # need to destroy the parallel_loader to avoid shared memory leaks
+            parallel_loader.close()
+            del parallel_loader
 
         # process epoch outputs
         model = self.get_model()

@@ -140,11 +140,6 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        # the ParallelDataLoader needs to be closed
-        _loader = getattr(self, 'train_dataloader')
-        if hasattr(_loader, 'close'):
-            _loader.close()
-
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
 
         self.num_training_batches = 0
@@ -187,12 +182,6 @@ class TrainerDataLoadingMixin(ABC):
 
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
-
-        if self.use_tpu:
-            device = xm.xla_device()
-            parallel_loader = xla_pl.ParallelLoader(self.train_dataloader, [device])
-            parallel_loader.sampler = self.train_dataloader.sampler
-            self.train_dataloader = parallel_loader
 
     def _reset_eval_dataloader(self, model: LightningModule,
                                mode: str) -> Tuple[int, List[DataLoader]]:

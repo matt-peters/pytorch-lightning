@@ -190,7 +190,7 @@ class TrainerDataLoadingMixin(ABC):
 
         if self.use_tpu:
             device = xm.xla_device()
-            self.train_dataloader = xla_pl.ParallelLoader(dataloader, [device])
+            self.train_dataloader = xla_pl.ParallelLoader(self.train_dataloader, [device])
 
     def _reset_eval_dataloader(self, model: LightningModule,
                                mode: str) -> Tuple[int, List[DataLoader]]:

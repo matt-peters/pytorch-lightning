@@ -363,6 +363,7 @@ else:
 
 try:
     import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
 except ImportError:
     XLA_AVAILABLE = False
 else:
@@ -493,7 +494,9 @@ class TrainerDPMixin(ABC):
 
     def tpu_train(self, tpu_core_idx, model):
         # put model on tpu
-        model.to(xm.xla_device())
+        #model.to(xm.xla_device())
+        model_wrapper = xmp.MpModelWrapper(model)
+        model = model_wrapper.to(xm.xla_device())
 
         # get the appropriate tpu ranks
         self.tpu_local_core_rank = xm.get_local_ordinal()

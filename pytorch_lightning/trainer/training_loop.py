@@ -145,6 +145,7 @@ import copy
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
+import gc
 
 import numpy as np
 from torch.utils.data import DataLoader
@@ -383,6 +384,7 @@ class TrainerTrainLoopMixin(ABC):
 
     def run_training_epoch(self):
 
+        gc.collect()
         # get model
         model = self.get_model()
 
@@ -491,6 +493,7 @@ class TrainerTrainLoopMixin(ABC):
             # need to destroy the parallel_loader to avoid shared memory leaks
             parallel_loader.close()
             del parallel_loader
+            gc.collect()
 
         # process epoch outputs
         model = self.get_model()

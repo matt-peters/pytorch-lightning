@@ -126,6 +126,7 @@ In this second case, the options you pass to trainer will be used when running
 from abc import ABC, abstractmethod
 from pprint import pprint
 from typing import Callable
+import gc
 
 import torch
 from torch.utils.data import DataLoader
@@ -246,6 +247,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
+            gc.collect()
             dl_outputs = []
 
             # on TPU we have to wrap it under the ParallelLoader
@@ -301,6 +303,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.use_tpu:
                 parallel_dataloader.close()
                 del parallel_dataloader
+                gc.collect()
 
         eval_results = {}
 
